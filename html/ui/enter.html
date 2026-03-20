@@ -59,7 +59,7 @@
         }
         #chat{
             width: 100%;
-            height: calc(100% - 100px);
+            height: calc(100% - 130px);
             background: transparent;
             display: flex;
             flex-direction: column;
@@ -75,6 +75,18 @@
             overflow-wrap: break-word;
         }
         #head{
+            height: 30px;
+            min-height: 30px;
+            max-height: 30px;
+            overflow: hidden;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0 10px;
+            text-shadow: 0 0 8px rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.5);
+        }
+        #head2{
             height: 30px;
             min-height: 30px;
             max-height: 30px;
@@ -134,7 +146,13 @@
     <p>🇬🇧</p>
     <p>🇷🇺</p>
     -->
+    <p style="color:rgba(255,255,255,0.5)">Показать только русские</p>
+    <input style="margin-top: 7px" type="checkbox">
+    <div style="width: 10px"></div>
     <p style="color:lawngreen" id="showCurrentOnline">Онлайн: 0</p>
+</div>
+<div id="head2">
+    <p><span style="color:rgba(255,255,255,0.5)">тгк проекта: </span><span style="color:rgba(255,255,255,0.84)">@OneCast_gmod</span></p>
 </div>
 <div id="box">
     <input type="text" id="inp" placeholder="Написать...">
@@ -150,13 +168,18 @@
     const chat = document.getElementById("chat")
     const msgs = document.getElementById("msgs")
     const head = document.getElementById("head")
+    const head2 = document.getElementById("head2")
     const showCurrentOnline = document.getElementById("showCurrentOnline")
 
     //подготовка
     box.style.display = "none"
     head.style.display = "none"
+    head2.style.display = "none"
     msgs.classList.toggle('hide-scroll', true)
     msgs.scrollTop = msgs.scrollHeight
+
+    //языки
+    const ru_languages = ["ru", "uk"]
 
     //источник событий (events)
     const eventSource = new EventSource(`${isUseHttps ? "https" : "http"}://${serverAddress}/events`);
@@ -178,6 +201,7 @@
         }
         //сообщение
         //console.log("Новое сообщение в чате:", data.text);
+        console.log(data.lang)
         addMessage(data.user, data.color, data.text)
     };
 
@@ -187,7 +211,7 @@
     };
 
     //инфа о пользователе
-    let playerInfo = { name: "null", steamID: "null", ready: false };
+    let playerInfo = { name: "null", steamID: "null", lang: "en", ready: false };
 
     //вызываем один раз при загрузке страницы
     window.onload = () => {
@@ -200,6 +224,7 @@
         playerInfo.name = data.name;
         playerInfo.steamID = data.steamid;
         playerInfo.ready = true;
+        playerInfo.lang = ru_languages.find((e) => e === data.lang)? "ru" : "en"
     }
 
     //функция отправки сообщения
@@ -223,7 +248,8 @@
                 user: playerInfo.name,
                 steamID: playerInfo.steamID,
                 text: text,
-                token: token
+                token: token,
+                lang: playerInfo.lang
             })
         });
 
@@ -249,6 +275,7 @@
         chat.style.background = hide ? "transparent" : "rgba(0,0,0,0.5)"
         box.style.display = hide ? "none" : "flex"
         head.style.display = hide ? "none" : "flex"
+        head2.style.display = hide ? "none" : "flex"
         msgs.classList.toggle('hide-scroll', hide);
         cOpend = !hide
     }

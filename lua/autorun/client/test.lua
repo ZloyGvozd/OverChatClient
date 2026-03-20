@@ -49,7 +49,7 @@ hook.Add("InitPostEntity", "MyHTMLOverlay", function()
         local data = {
             name = ply:Nick(),
             steamid = ply:SteamID(),
-            sid64 = ply:SteamID64()
+            lang = ply:GetInfo("gmod_language")
         }
         
         local json = util.TableToJSON(data)
