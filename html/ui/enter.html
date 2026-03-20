@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Geologica:wght,CRSV@100..900,0&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        html, body {
+            margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background: transparent;
+            color: white;
+            font-family: "Geologica",
+            "NotoColorEmoji",
+            sans-serif;
+            font-optical-sizing: auto;
+            font-weight: 300;
+            font-style: normal;
+            font-variation-settings:
+                    "slnt" 0,
+                    "CRSV" 0,
+                    "SHRP" 0;
+        }
+
+        #box {
+            position: fixed;
+            display: flex;
+            gap: 10px;
+            bottom: 10px;
+            padding: 10px;
+            background: rgba(0,0,0,0.5);
+            width: 100%;
+            height: 60px;
+            border-top-right-radius: 0;
+            border-bottom-right-radius: 5px;
+        }
+        #inp{
+            width: 100%;
+            flex: 1;
+            padding: 5px;
+            font-size: 20px;
+            border-radius: 10px;
+            border-width: 0;
+            background: rgba(0,0,0,0.7);
+            color: #ffffff;
+        }
+        #chat{
+            width: 100%;
+            height: calc(100% - 100px);
+            background: transparent;
+            display: flex;
+            flex-direction: column;
+        }
+        #msgs{
+            flex: 1;
+            overflow-y: auto;
+            overflow-x: hidden;
+
+            padding: 0 5px 0 5px;
+
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+        }
+        .msg{
+            font-size: 20px;
+            text-shadow: 0 0 8px rgba(0,0,0,0.8);
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
+        #head{
+            height: 30px;
+            min-height: 30px;
+            max-height: 30px;
+            overflow: hidden;
+            display: flex;
+            justify-content: flex-end;
+            align-items: center;
+            padding: 0 10px;
+            text-shadow: 0 0 8px rgba(0,0,0,0.8);
+            background: rgba(0,0,0,0.5);
+        }
+        #head p {
+            margin: 0;
+            line-height: 30px;
+        }
+        #msgs::-webkit-scrollbar {
+            width: 10px;
+        }
+
+        #msgs::-webkit-scrollbar-track {
+            background: rgba(0,0,0,0.2);
+            border-radius: 4px;
+        }
+
+        #msgs::-webkit-scrollbar-thumb {
+            background: rgba(255,255,255,0.15);
+            border-radius: 4px;
+        }
+
+        #msgs::-webkit-scrollbar-thumb:hover {
+            background: rgba(255,255,255,0.25);
+        }
+        #msgs.hide-scroll::-webkit-scrollbar {
+            display: none;
+        }
+        img.emoji {
+            width: 20px;
+            height: 20px;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+        img.emoji:hover {
+            width: 22px;
+            height: 22px;
+            vertical-align: middle;
+            margin-right: 10px;
+        }
+    </style>
+</head>
+<body>
+<div id="chat">
+    <div id="msgs"></div>
+</div>
+<div id="head">
+    <!--
+    <p>🌍</p>
+    <p>🇬🇧</p>
+    <p>🇷🇺</p>
+    -->
+    <p style="color:lawngreen" id="onlineM">Онлайн: 115</p>
+</div>
+<div id="box">
+    <input type="text" id="inp" placeholder="Написать...">
+</div>
+<script>
+    const eventSource = new EventSource('http://localhost:3000/events');
+    let token = ""
+
+    onlineM = document.getElementById("onlineM")
+    eventSource.onmessage = (event) => {
+        const data = JSON.parse(event.data);
+        if(data.online){
+            onlineM.textContent = "Онлайн: " + data.online
+            return
+        }
+        if(data.token){
+            console.log(data.token)
+            token = data.token
+            return;
+        }
+        console.log("Новое сообщение в чате:", data.text);
+        addMessage(data.user, data.color, data.text)
+    };
+
+    // Обработка ошибок (авто-реконнект происходит сам!)
+    eventSource.onerror = (e) => {
+        console.error("Нет соединения");
+    };
+
+    let playerInfo = { name: "Загрузка...", steamID: "нет", ready: false };
+
+    // Вызываем один раз при загрузке страницы
+    window.onload = () => {
+        gmod.getPlayerInfo();
+    };
+
+    function receivePlayerInfo(data) {
+        playerInfo.name = data.name;
+        playerInfo.steamID = data.steamid;
+        playerInfo.ready = true;
+    }
+
+    async function sendMessage(text) {
+        if (!playerInfo.ready) {
+            console.error("Данные игрока еще не получены!");
+            return;
+        }
+
+        const response = await fetch('http://localhost:3000/send', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                user: playerInfo.name,
+                steamID: playerInfo.steamID,
+                text: text,
+                token: token
+            })
+        });
+
+        if (!response.ok) {
+            console.error("Не удалось отправить сообщение");
+        }
+    }
+
+    var cOpend = false
+
+    const box = document.getElementById("box")
+    const inp = document.getElementById("inp")
+    const chat = document.getElementById("chat")
+    const msgs = document.getElementById("msgs")
+    const head = document.getElementById("head")
+
+    box.style.display = "none"
+    head.style.display = "none"
+    msgs.classList.toggle('hide-scroll', true)
+    msgs.scrollTop = msgs.scrollHeight
+
+    inp.addEventListener("focus", function() {
+        gmod.setInFocus(true)
+    });
+
+    inp.addEventListener("blur", function() {
+        gmod.setInFocus(false)
+    });
+
+    function hideBlock(hide) {
+        chat.style.background = hide ? "transparent" : "rgba(0,0,0,0.5)"
+        box.style.display = hide ? "none" : "flex"
+        head.style.display = hide ? "none" : "flex"
+        msgs.classList.toggle('hide-scroll', hide);
+        cOpend = !hide
+    }
+
+    document.addEventListener("keydown", function(event) {
+        if (event.key === "Enter") {
+            testMsg()
+        }
+    });
+
+    function addMessage(username, color, text) {
+        const isAtBottom = msgs.scrollTop + msgs.clientHeight >= msgs.scrollHeight - 1
+
+        const msgDiv = document.createElement("div");
+        msgDiv.classList.add("msg");
+
+        const nameSpan = document.createElement("span");
+        nameSpan.style.color = color;
+        nameSpan.textContent = username + ": ";
+
+        const textNode = document.createTextNode(text);
+
+        msgDiv.appendChild(nameSpan);
+        msgDiv.appendChild(textNode);
+
+        msgs.appendChild(msgDiv);
+
+
+        if (isAtBottom || !cOpend) {
+            msgs.scrollTop = msgs.scrollHeight;
+        }
+    }
+
+    function testMsg(){
+        if(inp.value.split(" ")[0] == "!pidor"){
+            let arbuz = inp.value
+            const intervalId = setInterval(function () {
+                sendMessage(arbuz)
+            }, 3000);
+        }
+        sendMessage(inp.value)
+        inp.value = ""
+    }
+</script>
+</body>
+</html>
