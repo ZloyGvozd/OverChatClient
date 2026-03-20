@@ -6,6 +6,13 @@
     <link href="https://fonts.googleapis.com/css2?family=Geologica:wght,CRSV@100..900,0&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Noto+Color+Emoji&display=swap" rel="stylesheet">
     <style>
+        .msg{
+            font-size: 20px;
+            text-shadow: 0 0 8px rgba(0,0,0,0.8);
+            white-space: pre-wrap;
+            overflow-wrap: break-word;
+            word-break: break-word;
+        }
         * {
             box-sizing: border-box;
         }
@@ -67,13 +74,6 @@
             white-space: pre-wrap;
             overflow-wrap: break-word;
         }
-        .msg{
-            font-size: 20px;
-            text-shadow: 0 0 8px rgba(0,0,0,0.8);
-            white-space: pre-wrap;
-            overflow-wrap: break-word;
-            word-break: break-word;
-        }
         #head{
             height: 30px;
             min-height: 30px;
@@ -134,56 +134,87 @@
     <p>🇬🇧</p>
     <p>🇷🇺</p>
     -->
-    <p style="color:lawngreen" id="onlineM">Онлайн: 115</p>
+    <p style="color:lawngreen" id="showCurrentOnline">Онлайн: 0</p>
 </div>
 <div id="box">
     <input type="text" id="inp" placeholder="Написать...">
 </div>
 <script>
-    const eventSource = new EventSource('http://localhost:3000/events');
+    //настройки
+    const serverAddress = "localhost:3000"
+    const isUseHttps = false
+
+    //элементы
+    const box = document.getElementById("box")
+    const inp = document.getElementById("inp")
+    const chat = document.getElementById("chat")
+    const msgs = document.getElementById("msgs")
+    const head = document.getElementById("head")
+    const showCurrentOnline = document.getElementById("showCurrentOnline")
+
+    //подготовка
+    box.style.display = "none"
+    head.style.display = "none"
+    msgs.classList.toggle('hide-scroll', true)
+    msgs.scrollTop = msgs.scrollHeight
+
+    //источник событий (events)
+    const eventSource = new EventSource(`${isUseHttps ? "https" : "http"}://${serverAddress}/events`);
     let token = ""
 
-    onlineM = document.getElementById("onlineM")
+    //входящее сообщение или эвент
     eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        //обнова счётчика онлайна
         if(data.online){
-            onlineM.textContent = "Онлайн: " + data.online
+            showCurrentOnline.textContent = "Онлайн: " + data.online
             return
         }
+        //пришёл токен
         if(data.token){
-            console.log(data.token)
+            //console.log(data.token)
             token = data.token
             return;
         }
-        console.log("Новое сообщение в чате:", data.text);
+        //сообщение
+        //console.log("Новое сообщение в чате:", data.text);
         addMessage(data.user, data.color, data.text)
     };
 
-    // Обработка ошибок (авто-реконнект происходит сам!)
+    //ошибка подключения, автореконнект происходит сам
     eventSource.onerror = (e) => {
-        console.error("Нет соединения");
+        //console.error("Нет соединения");
     };
 
-    let playerInfo = { name: "Загрузка...", steamID: "нет", ready: false };
+    //инфа о пользователе
+    let playerInfo = { name: "null", steamID: "null", ready: false };
 
-    // Вызываем один раз при загрузке страницы
+    //вызываем один раз при загрузке страницы
     window.onload = () => {
+        //вызов передачи инфы
         gmod.getPlayerInfo();
     };
 
+    //принятие инфы
     function receivePlayerInfo(data) {
         playerInfo.name = data.name;
         playerInfo.steamID = data.steamid;
         playerInfo.ready = true;
     }
 
+    //функция отправки сообщения
     async function sendMessage(text) {
+        if(text.length === 0){
+            return
+        }
+        //проверка наличия инфы
         if (!playerInfo.ready) {
-            console.error("Данные игрока еще не получены!");
+            console.error("Данные игрока не получены!");
             return;
         }
 
-        const response = await fetch('http://localhost:3000/send', {
+        //отправка сообщения
+        const response = await fetch(`${isUseHttps ? "https" : "http"}://${serverAddress}/send`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
@@ -196,32 +227,24 @@
             })
         });
 
+        //проверка
         if (!response.ok) {
             console.error("Не удалось отправить сообщение");
         }
     }
 
+    //открыто ли окно
     var cOpend = false
 
-    const box = document.getElementById("box")
-    const inp = document.getElementById("inp")
-    const chat = document.getElementById("chat")
-    const msgs = document.getElementById("msgs")
-    const head = document.getElementById("head")
-
-    box.style.display = "none"
-    head.style.display = "none"
-    msgs.classList.toggle('hide-scroll', true)
-    msgs.scrollTop = msgs.scrollHeight
-
+    //фикс чего-то
     inp.addEventListener("focus", function() {
         gmod.setInFocus(true)
     });
-
     inp.addEventListener("blur", function() {
         gmod.setInFocus(false)
     });
 
+    //функция скрытия или открытия окна
     function hideBlock(hide) {
         chat.style.background = hide ? "transparent" : "rgba(0,0,0,0.5)"
         box.style.display = hide ? "none" : "flex"
@@ -230,12 +253,15 @@
         cOpend = !hide
     }
 
+    //отправка по нажатии enter
     document.addEventListener("keydown", function(event) {
         if (event.key === "Enter") {
-            testMsg()
+            sendMessage(inp.value)
+            inp.value = ""
         }
     });
 
+    //вывод сообщения в окно
     function addMessage(username, color, text) {
         const isAtBottom = msgs.scrollTop + msgs.clientHeight >= msgs.scrollHeight - 1
 
@@ -253,21 +279,10 @@
 
         msgs.appendChild(msgDiv);
 
-
+        //автоскролл
         if (isAtBottom || !cOpend) {
             msgs.scrollTop = msgs.scrollHeight;
         }
-    }
-
-    function testMsg(){
-        if(inp.value.split(" ")[0] == "!pidor"){
-            let arbuz = inp.value
-            const intervalId = setInterval(function () {
-                sendMessage(arbuz)
-            }, 3000);
-        }
-        sendMessage(inp.value)
-        inp.value = ""
     }
 </script>
 </body>
