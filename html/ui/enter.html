@@ -145,10 +145,11 @@
     <p>🌍</p>
     <p>🇬🇧</p>
     <p>🇷🇺</p>
-    -->
     <p style="color:rgba(255,255,255,0.5)">Показать только русские</p>
-    <input style="margin-top: 7px" type="checkbox">
+    <input style="margin-top: 7px" type="checkbox" id="langCheckBox">
     <div style="width: 10px"></div>
+    нет блин
+    -->
     <p style="color:lawngreen" id="showCurrentOnline">Онлайн: 0</p>
 </div>
 <div id="head2">
@@ -161,6 +162,7 @@
     //настройки
     const serverAddress = "localhost:3000"
     const isUseHttps = false
+    const maxMessages = 1000
 
     //элементы
     const box = document.getElementById("box")
@@ -170,6 +172,7 @@
     const head = document.getElementById("head")
     const head2 = document.getElementById("head2")
     const showCurrentOnline = document.getElementById("showCurrentOnline")
+    //const langCheckBox = document.getElementById("langCheckBox")
 
     //подготовка
     box.style.display = "none"
@@ -201,7 +204,6 @@
         }
         //сообщение
         //console.log("Новое сообщение в чате:", data.text);
-        console.log(data.lang)
         addMessage(data.user, data.color, data.text)
     };
 
@@ -305,6 +307,11 @@
         msgDiv.appendChild(textNode);
 
         msgs.appendChild(msgDiv);
+
+        //удаление старых сообщений
+        while (msgs.children.length > maxMessages) {
+            msgs.removeChild(msgs.firstChild);
+        }
 
         //автоскролл
         if (isAtBottom || !cOpend) {
