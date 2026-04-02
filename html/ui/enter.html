@@ -59,7 +59,7 @@
         }
         #chat{
             width: 100%;
-            height: calc(100% - 130px);
+            height: calc(100% - 110px);
             background: transparent;
             display: flex;
             flex-direction: column;
@@ -75,9 +75,9 @@
             overflow-wrap: break-word;
         }
         #head{
-            height: 30px;
-            min-height: 30px;
-            max-height: 30px;
+            height: 20px;
+            min-height: 20px;
+            max-height: 20px;
             overflow: hidden;
             display: flex;
             justify-content: flex-end;
@@ -85,11 +85,12 @@
             padding: 0 10px;
             text-shadow: 0 0 8px rgba(0,0,0,0.8);
             background: rgba(0,0,0,0.5);
+            font-size: 13px;
         }
         #head2{
-            height: 30px;
-            min-height: 30px;
-            max-height: 30px;
+            height: 20px;
+            min-height: 20px;
+            max-height: 20px;
             overflow: hidden;
             display: flex;
             justify-content: flex-end;
@@ -97,6 +98,7 @@
             padding: 0 10px;
             text-shadow: 0 0 8px rgba(0,0,0,0.8);
             background: rgba(0,0,0,0.5);
+            font-size: 13px;
         }
         #head p {
             margin: 0;
@@ -153,15 +155,15 @@
     <p style="color:lawngreen" id="showCurrentOnline">Онлайн: 0</p>
 </div>
 <div id="head2">
-    <p><span style="color:rgba(255,255,255,0.5)">тгк проекта: </span><span style="color:rgba(255,255,255,0.84)">@OneCast_gmod</span></p>
+    <p id="tgc"><span style="color:rgba(255,255,255,0.5)">Все новости проекта в Telegram: </span><span style="color:rgba(255,255,255,0.84)">@OneCast_gmod</span></p>
 </div>
 <div id="box">
     <input type="text" id="inp" placeholder="Написать...">
 </div>
 <script>
     //настройки
-    const serverAddress = "localhost:3000"
-    const isUseHttps = false
+    const serverAddress = "gmod.one-cast.online"
+    const isUseHttps = true
     const maxMessages = 1000
 
     //элементы
@@ -172,6 +174,7 @@
     const head = document.getElementById("head")
     const head2 = document.getElementById("head2")
     const showCurrentOnline = document.getElementById("showCurrentOnline")
+    const tgc = document.getElementById("tgc")
     //const langCheckBox = document.getElementById("langCheckBox")
 
     //подготовка
@@ -188,13 +191,24 @@
     const eventSource = new EventSource(`${isUseHttps ? "https" : "http"}://${serverAddress}/events`);
     let token = ""
 
+    //инфа о пользователе
+    let playerInfo = { name: "null", steamID: "null", lang: "en", ready: false };
+
+    let online
+
+    function setOnline(online) {
+        const prefix = (playerInfo.lang === "ru") ? "Онлайн: " : "Online: ";
+        showCurrentOnline.textContent = prefix + online;
+    }
+
     //входящее сообщение или эвент
     eventSource.onmessage = (event) => {
         const data = JSON.parse(event.data);
         //обнова счётчика онлайна
-        if(data.online){
-            showCurrentOnline.textContent = "Онлайн: " + data.online
-            return
+        if ("online" in data) {
+            online = data.online
+            setOnline(online)
+            return;
         }
         //пришёл токен
         if(data.token){
@@ -212,9 +226,6 @@
         //console.error("Нет соединения");
     };
 
-    //инфа о пользователе
-    let playerInfo = { name: "null", steamID: "null", lang: "en", ready: false };
-
     //вызываем один раз при загрузке страницы
     window.onload = () => {
         //вызов передачи инфы
@@ -227,6 +238,14 @@
         playerInfo.steamID = data.steamid;
         playerInfo.ready = true;
         playerInfo.lang = ru_languages.find((e) => e === data.lang)? "ru" : "en"
+
+        setOnline(online)
+
+        if(playerInfo.lang === "en"){
+            setOnline(online)
+            tgc.innerHTML = "<span style=\"color:rgba(255,255,255,0.5)\">Join our Telegram: </span><span style=\"color:rgba(255,255,255,0.84)\">@OneCast_gmod</span>"
+            inp.placeholder = "Enter..."
+        }
     }
 
     //функция отправки сообщения
